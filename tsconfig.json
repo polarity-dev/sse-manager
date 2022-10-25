@@ -1,24 +1,24 @@
 {
   "compilerOptions": {
-    "module": "esnext",
-    "noEmit": false,
-    "target": "esnext",
-    "declaration": true,
-    "lib": [
-      "esnext"
-    ],
     "allowJs": true,
-    "skipLibCheck": true,
-    "strict": false,
-    "forceConsistentCasingInFileNames": true,
-    "esModuleInterop": true,
-    "moduleResolution": "node",
+    "module": "commonjs",
     "resolveJsonModule": true,
-    "isolatedModules": true,
-    "outDir": "src",
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "target": "es2015",
+    "moduleResolution": "node",
+    "noEmit": true,
+    "strict": true,
+    "typeRoots": [
+      "node_modules/@types",
+      "src/types"
+    ],
+    "esModuleInterop": true
   },
-  "include": ["src"],
-  "exclude": ["dist", "node_modules"]
+  "include": [
+    "npm_scripts",
+    "test",
+    "src",
+    "openapi"
+  ],
+  "compileOnSave": true
 }
-

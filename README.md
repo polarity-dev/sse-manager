@@ -1,33 +1,138 @@
-# Sf Module Template
+# sse-manager
 
-A simple template to build modules for npm
+Handle server side events with ease.
 
-## Features
+Supported features:
 
-- Typescript support for single file modules
+- handle single request
+- handle multiple requests using rooms abstraction
+- ExpressJs compatible
+- Redis events compatible
+- pluggable with every backend server framework with programmable custom http adapters
+- pluggable with every event dispatcher tool with programmable custom event adapters
 
 ## Usage
 
-- Insert code in `src/index.ts`
-- Write module behavior tests in `test/index.ts`
-- Write module type test in `test/index.cjs`
+classic usage:
 
-To build the module run:
+``` js
+const { createSSEManager } = require("sse-manager")
 
-```npm run build```
+const sseManager = await createSSEManager()
 
-To build in watch mode:
+app.get("/stream", async(req, res) => {
+  const sseStream = await sseManager.createSSEStream(res)
+  await sseStream.broadcast({ data: "Joining you to test-room"})
+  await sseStream.addToRoom("test-room")
+})
 
-```npm run dev```
+setInterval(async() => {
+  await sseManager.broadcast("test-room", { data: "Hello test-room people!" })
+}, 1000)
+```
 
-To test:
+with Redis events adapter:
 
-```npm test```
+```js
+  const redisClient = createClient({
+    url: "redis://redis:6379"
+  })
 
-## Notes
+  await redisClient.connect()
 
-- Only single file modules are supported
-- Only default export is verified to work (`export default ...`)
-- It is unnecessary to write behavior tests  in both `test/index.cjs` and `test/index.ts`  
+  const redisSubscriber = redisClient.duplicate()
+  await redisSubscriber.connect()
 
-It is recommended, however, to check if the module has the correct type in both `cjs` and `ts`, since the former uses `commonjs` as import method, the latter uses `esm`
+  const sseManager = await createSSEManager({
+    eventsAdapter: new RedisEventsAdapter({
+      redisClient,
+      redisSubscriber
+    })
+  })
+```
+
+## createSSEManager options
+
+``` js
+const sseManager = await createSSEManager({
+  httpAdapter: new ExpressHttpAdapter(), // default
+  eventsAdapter: new EmitterEventsAdapter() // default, uses node event emitters to broadcast events
+})
+```
+
+## Adapters
+
+### HTTP Adapters
+
+available http adapters:
+
+- `ExpressHttpAdapter`: default
+- custom http adapter:
+
+    ```js
+    class CustomHttpAdapter = extends HTTPAdapter {
+      constructor() {
+        super({
+          setResHeaders: (res, headers): void => {
+            // add your custom code here
+            Object.entries(headers).forEach(([k, v]) => res.set(k, v)) // example: code from ExpressHttpAdapter
+          },
+
+          writeRes: (res, data): void => {
+            // add your custom code here
+            res.write(data) // example: code from ExpressHttpAdapter
+          },
+
+          flushResHeaders: (res): void => {
+            // add your custom code here
+            res.flushHeaders() // example: code from ExpressHttpAdapter
+          },
+
+          endRes: (res): void => {
+            // add your custom code here
+            res.end() // example: code from ExpressHttpAdapter
+          },
+
+          onCloseCallback: (res, fn): void => {
+            // add your custom code here
+            res.on("close", fn) // example: code from ExpressHttpAdapter
+          }
+        })
+      }
+    }
+    ```
+
+### Event Adapters
+
+available event adapters:
+
+- `EmitterEventsAdapter`: default, uses NodeJs event emitters to broadcast events in a single application instance use case
+- `RedisEventsAdapter`: uses Redis to boreadcast events in a multiple application instance use case
+- custom event adapter:
+
+``` js
+class CustomEventsAdapter = extends EventsAdapter {
+  #emitter = new EventEmitter() // example: code from EmitterEventsAdapter
+
+  constructor() {
+    super({
+      emit: (event, data) => {
+        // add your custom code here
+
+        // example: code from EmitterEventsAdapter
+        this.#emitter.emit(event, data)
+        return Promise.resolve()
+      },
+      on: (event, fn) => {
+        // add your custom code here
+
+        // example: code from EmitterEventsAdapter
+        this.#emitter.on(event, (data) => {
+          return fn(data, event)
+        })
+        return Promise.resolve()
+      }
+    })
+  }
+}
+```

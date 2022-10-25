@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SSEManager</title>
+  </head>
+  <body>
+    <h1>SSE Test</h1>
+    <div id="content">
+    <script>
+      const content = document.getElementById("content")
+
+      const evtSource = new EventSource(`./stream`)
+      evtSource.onmessage = event => {
+        console.log(event)
+        content.innerHTML += `<div>${event.data}</div>`
+      }
+
+      evtSource.onerror = event => {
+        console.error(event)
+        content.innerHTML += `<div style="color:red;">error</div>`
+      }
+
+      evtSource.onopen = event => {
+        console.log(event)
+        content.innerHTML += `<div style="color:blue;">open</div>`
+      }
+    </script>
+  </body>
+</html>

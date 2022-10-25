@@ -1,0 +1,32 @@
+version: "3.9"
+services:
+  api1:
+    container_name: api1
+    image: node:16-alpine
+    ports:
+      - "8081:8081"
+    volumes:
+      - .:/usr/app/
+      - ../:/usr/SSEManager
+    working_dir: /usr/app
+    entrypoint: npm start
+    environment:
+      - PORT=8081
+    restart: always
+
+  api2:
+    container_name: api2
+    image: node:16-alpine
+    ports:
+      - "8082:8082"
+    volumes:
+      - .:/usr/app/
+      - ../:/usr/SSEManager
+    working_dir: /usr/app
+    entrypoint: npm start
+    environment:
+      - PORT=8082
+    restart: always
+
+  redis:
+    image: redis:alpine
