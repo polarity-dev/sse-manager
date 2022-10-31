@@ -107,7 +107,7 @@ available http adapters:
 available event adapters:
 
 - `EmitterEventsAdapter`: default, uses NodeJs event emitters to broadcast events in a single application instance use case
-- `RedisEventsAdapter`: uses Redis to boreadcast events in a multiple application instance use case
+- `RedisEventsAdapter`: uses Redis to broadcast events in a multiple application instance use case
 - custom event adapter:
 
 ``` js
