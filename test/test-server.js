@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const express = require("express")
 const { createClient } = require("redis")
 const { join } = require("path")

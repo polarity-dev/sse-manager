@@ -16,7 +16,7 @@ Supported features:
 classic usage:
 
 ``` js
-const { createSSEManager } = require("sse-manager")
+const { createSSEManager } = require("@soluzioni-futura/sse-manager")
 
 const sseManager = await createSSEManager()
 

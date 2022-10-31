@@ -5,8 +5,8 @@ import { EventEmitter } from "events"
 import { randomUUID } from "crypto"
 
 export type SSEManagerOptions = {
-  httpAdapter: HTTPAdapter,
-  eventsAdapter: EventsAdapter
+  httpAdapter?: HTTPAdapter,
+  eventsAdapter?: EventsAdapter
 }
 export class SSEManager extends EventEmitter {
   readonly id: string
@@ -15,14 +15,11 @@ export class SSEManager extends EventEmitter {
   #sseStreams: { [id: string]: SSEStream } = {}
   #rooms: { [id: string]: SSEStream[] } = {}
 
-  constructor({
-    httpAdapter = new ExpressHttpAdapter(),
-    eventsAdapter = new EmitterEventsAdapter()
-  }: SSEManagerOptions) {
+  constructor(options?: SSEManagerOptions) {
     super()
     this.id = randomUUID()
-    this.httpAdapter = httpAdapter
-    this.eventsAdapter = eventsAdapter
+    this.httpAdapter = options?.httpAdapter || new ExpressHttpAdapter()
+    this.eventsAdapter = options?.eventsAdapter || new EmitterEventsAdapter()
   }
 
   async init(): Promise<void> {
@@ -119,7 +116,7 @@ export class SSEManager extends EventEmitter {
   }
 }
 
-export const createSSEManager = async(options: SSEManagerOptions): Promise<SSEManager> => {
+export const createSSEManager = async(options?: SSEManagerOptions): Promise<SSEManager> => {
   const sseManager = new SSEManager(options)
   await sseManager.init()
   return sseManager
