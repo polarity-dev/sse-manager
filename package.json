@@ -24,14 +24,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/soluzionifutura/sf-module-template.git"
+    "url": "git+https://github.com/soluzionifutura/sse-manager.git"
   },
   "author": "Soluzioni Futura <info@soluzionifutura.it>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/soluzionifutura/sf-module-template/issues"
+    "url": "https://github.com/soluzionifutura/sse-manager/issues"
   },
-  "homepage": "https://github.com/soluzionifutura/sf-module-template#readme",
+  "homepage": "https://github.com/soluzionifutura/sse-manager#readme",
   "devDependencies": {
     "@soluzioni-futura/eslint-config-soluzioni-futura": "^2.2.0",
     "@types/chai": "^4.3.1",
