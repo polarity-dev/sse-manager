@@ -16,9 +16,7 @@
   },
   "include": [
     "npm_scripts",
-    "test",
-    "src",
-    "openapi"
+    "src"
   ],
   "compileOnSave": true
 }

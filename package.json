@@ -1,6 +1,6 @@
 {
   "name": "@soluzioni-futura/sse-manager",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "sse-manager",
   "module": "dist/index.module.js",
   "main": "dist/index.cjs",
@@ -17,10 +17,10 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "rm -r ./dist && microbundle --target node --format modern,esm,cjs",
+    "build": "rm -rf ./dist && microbundle --target node --format modern,esm,cjs",
     "prepare": "npm run build",
     "pretest": "npm run build",
-    "dev": "concurrently \"docker-compose -f ./test/docker-compose.yml up\" \"microbundle watch\""
+    "dev": "concurrently \"docker-compose -f ./test/docker-compose.yml up\" \"microbundle watch --target node --format modern,esm,cjs\""
   },
   "repository": {
     "type": "git",

@@ -3,23 +3,22 @@ import type { createClient } from "redis"
 import type { Response } from "express"
 import { EventEmitter } from "events"
 import { randomUUID } from "crypto"
+import { EventsAdapterEmitFn, EventsAdapterInitFn, EventsAdapterOnFn, HTTPAdapterSetResHeadersFn, HTTPAdapterWriteResFn, HTTPEndResHeadersFn, HTTPFlushResHeadersFn, HTTPResOnCloseCallbackFn, SSEManagerOptions, SSEMessage, SSEStreamOptions } from "./types"
 
-export type SSEManagerOptions = {
-  httpAdapter?: HTTPAdapter,
-  eventsAdapter?: EventsAdapter
-}
 export class SSEManager extends EventEmitter {
   readonly id: string
   httpAdapter: HTTPAdapter
   eventsAdapter: EventsAdapter
   #sseStreams: { [id: string]: SSEStream } = {}
   #rooms: { [id: string]: SSEStream[] } = {}
+  #keepAliveInterval: number | null
 
   constructor(options?: SSEManagerOptions) {
     super()
     this.id = randomUUID()
     this.httpAdapter = options?.httpAdapter || new ExpressHttpAdapter()
     this.eventsAdapter = options?.eventsAdapter || new EmitterEventsAdapter()
+    this.#keepAliveInterval = typeof options?.keepAliveInterval !== "undefined" ? options.keepAliveInterval : 15000
   }
 
   async init(): Promise<void> {
@@ -69,11 +68,24 @@ export class SSEManager extends EventEmitter {
     ])
   }
 
-  async createSSEStream(res: any): Promise<SSEStream> {
-    const sseStream = new SSEStream(res, this)
+  async createSSEStream(res: any, options: SSEStreamOptions = { keepAliveInterval: this.#keepAliveInterval }): Promise<SSEStream> {
+    const sseStream = new SSEStream(res, this, options)
     this.#sseStreams[sseStream.id] = sseStream
 
     sseStream.on("close", async() => {
+      this.#sseStreams[sseStream.id].rooms.forEach(roomId => {
+        const room = this.#rooms[roomId]
+        for (let i = 0; i < room.length; i++) {
+          if (room[i].id === sseStream.id) {
+            room.splice(i, 1)
+            break
+          }
+        }
+
+        if (!room.length) {
+          delete this.#rooms[roomId]
+        }
+      })
       delete this.#sseStreams[sseStream.id]
     })
 
@@ -102,6 +114,7 @@ export class SSEManager extends EventEmitter {
         this.#rooms[roomId] = []
       }
       this.#rooms[roomId].push(this.#sseStreams[streamId])
+      this.#sseStreams[streamId].rooms.push(roomId)
     } else {
       await this.eventsAdapter.emit("addSSEStreamToRoom", JSON.stringify({ streamId, roomId }))
     }
@@ -122,20 +135,23 @@ export const createSSEManager = async(options?: SSEManagerOptions): Promise<SSEM
   return sseManager
 }
 
-export type SSEMessage = { data: string, id?: number | string,  channel?: string, retry?: number }
-
 export class SSEStream extends EventEmitter {
   readonly id: string
   readonly res: any
   readonly sseManager: SSEManager
   readonly rooms: string[]
+  readonly options: SSEStreamOptions
+  closed: boolean
+  #keepAliveTimeout: ReturnType<typeof setTimeout> | null = null
 
-  constructor(res: any, sseManager: SSEManager) {
+  constructor(res: any, sseManager: SSEManager, options: SSEStreamOptions) {
     super()
     this.id = randomUUID()
     this.res = res
     this.sseManager = sseManager
     this.rooms = []
+    this.options = options
+    this.closed = false
 
     sseManager.httpAdapter.setResHeaders(res, {
       "Cache-Control": "no-cache",
@@ -146,15 +162,39 @@ export class SSEStream extends EventEmitter {
     sseManager.httpAdapter.flushResHeaders(res)
 
     sseManager.httpAdapter.onCloseCallback(res, () => {
+      this.closed = true
+      if (this.#keepAliveTimeout) {
+        clearTimeout(this.#keepAliveTimeout)
+      }
       this.emit("close")
     })
 
     this.on("data", data => sseManager.httpAdapter.writeRes(res, data))
     this.on("end", () => sseManager.httpAdapter.endRes(res))
+
+    this.#setKeepAliveInterval()
+  }
+
+  #setKeepAliveInterval = (): void => {
+    if (this.#keepAliveTimeout) {
+      clearTimeout(this.#keepAliveTimeout)
+    }
+
+    if (this.options.keepAliveInterval) {
+      this.#keepAliveTimeout = setTimeout(() => {
+        this.keepAlive()
+        this.#setKeepAliveInterval()
+      }, this.options.keepAliveInterval)
+    }
+  }
+
+  keepAlive(): void {
+    this.sseManager.httpAdapter.writeRes(this.res, ":keep-alive\n\n")
   }
 
   broadcast(message: SSEMessage): void {
     this.emit("data", `${Object.entries(message).map(([k, v]) => `${k}: ${v}`).join("\n")}\n\n`)
+    this.#setKeepAliveInterval()
   }
 
   close(): void {
@@ -169,12 +209,6 @@ export class SSEStream extends EventEmitter {
     return this.sseManager.removeSSEStreamFromRoom(this.id, id)
   }
 }
-
-export type HTTPAdapterSetResHeadersFn = (res: any, headers: { [key: string]: string }) => void
-export type HTTPAdapterWriteResFn = (res: any, data: string) => void
-export type HTTPFlushResHeadersFn = (res: any) => void
-export type HTTPEndResHeadersFn = (res: any) => void
-export type HTTPResOnCloseCallbackFn = (res: any, fn: () => void) => void
 
 export class HTTPAdapter {
   setResHeaders: HTTPAdapterSetResHeadersFn
@@ -229,10 +263,6 @@ export class ExpressHttpAdapter extends HTTPAdapter {
     })
   }
 }
-
-export type EventsAdapterEmitFn = (event: string, data: string) => Promise<void>
-export type EventsAdapterOnFn = (event: string, fn: (data: string, event: string) => void) => Promise<void>
-export type EventsAdapterInitFn = () => Promise<void>
 
 export class EventsAdapter {
   emit: EventsAdapterEmitFn
