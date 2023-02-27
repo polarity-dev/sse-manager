@@ -1,6 +1,6 @@
 # sse-manager
 
-Handle server side events with ease.
+Handle server sent events with ease.
 
 Supported features:
 
