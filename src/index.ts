@@ -269,6 +269,11 @@ export class ExpressHttpAdapter extends HTTPAdapter {
 
       writeRes: (res: Response, data): void => {
         res.write(data)
+
+        const resWithFlush = res as Response & { flush?: () => void }
+        if (typeof resWithFlush.flush  === "function") {
+          resWithFlush.flush()
+        }
       },
 
       flushResHeaders: (res: Response): void => {
