@@ -2,7 +2,7 @@
 import type { createClient } from "redis"
 import type { Response } from "express"
 import { EventEmitter } from "events"
-import { randomUUID } from "crypto"
+import { randomBytes } from "crypto"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type SSEManagerOptions = {
@@ -37,7 +37,7 @@ export class SSEManager extends EventEmitter {
 
   constructor(options?: SSEManagerOptions) {
     super()
-    this.id = randomUUID()
+    this.id = randomBytes(16).toString("hex")
     this.httpAdapter = options?.httpAdapter || new ExpressHttpAdapter()
     this.eventsAdapter = options?.eventsAdapter || new EmitterEventsAdapter()
     this.#keepAliveInterval = typeof options?.keepAliveInterval !== "undefined" ? options.keepAliveInterval : 15000
@@ -168,7 +168,7 @@ export class SSEStream extends EventEmitter {
 
   constructor(res: any, sseManager: SSEManager, options: SSEStreamOptions) {
     super()
-    this.id = randomUUID()
+    this.id = randomBytes(16).toString("hex")
     this.res = res
     this.sseManager = sseManager
     this.rooms = []
