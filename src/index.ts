@@ -86,6 +86,16 @@ export class SSEManager extends EventEmitter {
         if (this.#sseStreams[streamId]) {
           this.#rooms[roomId]?.splice(this.#rooms[roomId]?.indexOf(this.#sseStreams[streamId]), 1)
         }
+      }),
+
+      this.eventsAdapter.on("closeRoom", (data) => {
+        const { roomId } = JSON.parse(data) as { roomId: string }
+        if (this.#rooms[roomId]) {
+          this.#rooms[roomId].forEach(sseStream => {
+            sseStream.close()
+          })
+          delete this.#rooms[roomId]
+        }
       })
     ])
   }
@@ -148,6 +158,10 @@ export class SSEManager extends EventEmitter {
     } else {
       await this.eventsAdapter.emit("removeSSEStreamFromRoom", JSON.stringify({ streamId, roomId }))
     }
+  }
+
+  async closeRoom(roomId: string): Promise<void> {
+    await this.eventsAdapter.emit("closeRoom", JSON.stringify({ roomId }))
   }
 }
 
