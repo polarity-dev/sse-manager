@@ -31,8 +31,8 @@ export class SSEManager extends EventEmitter {
   readonly id: string
   httpAdapter: HTTPAdapter
   eventsAdapter: EventsAdapter
-  #sseStreams: { [id: string]: SSEStream } = {}
-  #rooms: { [id: string]: SSEStream[] } = {}
+  sseStreams: { [id: string]: SSEStream } = {}
+  rooms: { [id: string]: SSEStream[] } = {}
   #keepAliveInterval: number | null
 
   constructor(options?: SSEManagerOptions) {
@@ -51,10 +51,10 @@ export class SSEManager extends EventEmitter {
     await Promise.all([
       this.eventsAdapter.on("broadcast", (data) => {
         const { id, message } = JSON.parse(data) as { id: string, message: SSEMessage }
-        if (this.#sseStreams[id]) {
-          this.#sseStreams[id].broadcast(message)
-        } else if (this.#rooms[id]) {
-          Object.values(this.#rooms[id]).forEach(sseStream => {
+        if (this.sseStreams[id]) {
+          this.sseStreams[id].broadcast(message)
+        } else if (this.rooms[id]) {
+          Object.values(this.rooms[id]).forEach(sseStream => {
             sseStream.broadcast(message)
           })
         }
@@ -62,10 +62,10 @@ export class SSEManager extends EventEmitter {
 
       this.eventsAdapter.on("closeSSEStream", (data) => {
         const { id } = JSON.parse(data) as { id: string }
-        if (this.#sseStreams[id]) {
-          this.#sseStreams[id].close()
-        } else if (this.#rooms[id]) {
-          Object.values(this.#rooms[id]).forEach(sseStream => {
+        if (this.sseStreams[id]) {
+          this.sseStreams[id].close()
+        } else if (this.rooms[id]) {
+          Object.values(this.rooms[id]).forEach(sseStream => {
             sseStream.close()
           })
         }
@@ -73,28 +73,28 @@ export class SSEManager extends EventEmitter {
 
       this.eventsAdapter.on("addSSEStreamToRoom", (data) => {
         const { streamId, roomId } = JSON.parse(data) as { streamId: string, roomId: string }
-        if (this.#sseStreams[streamId]) {
-          if (!this.#rooms[roomId]) {
-            this.#rooms[roomId] = []
+        if (this.sseStreams[streamId]) {
+          if (!this.rooms[roomId]) {
+            this.rooms[roomId] = []
           }
-          this.#rooms[roomId].push(this.#sseStreams[streamId])
+          this.rooms[roomId].push(this.sseStreams[streamId])
         }
       }),
 
       this.eventsAdapter.on("removeSSEStreamFromRoom", (data) => {
         const { streamId, roomId } = JSON.parse(data) as { streamId: string, roomId: string }
-        if (this.#sseStreams[streamId]) {
-          this.#rooms[roomId]?.splice(this.#rooms[roomId]?.indexOf(this.#sseStreams[streamId]), 1)
+        if (this.sseStreams[streamId]) {
+          this.rooms[roomId]?.splice(this.rooms[roomId]?.indexOf(this.sseStreams[streamId]), 1)
         }
       }),
 
       this.eventsAdapter.on("closeRoom", (data) => {
         const { roomId } = JSON.parse(data) as { roomId: string }
-        if (this.#rooms[roomId]) {
-          this.#rooms[roomId].forEach(sseStream => {
+        if (this.rooms[roomId]) {
+          this.rooms[roomId].forEach(sseStream => {
             sseStream.close()
           })
-          delete this.#rooms[roomId]
+          delete this.rooms[roomId]
         }
       })
     ])
@@ -102,11 +102,11 @@ export class SSEManager extends EventEmitter {
 
   async createSSEStream(res: any, options: SSEStreamOptions = { keepAliveInterval: this.#keepAliveInterval }): Promise<SSEStream> {
     const sseStream = new SSEStream(res, this, options)
-    this.#sseStreams[sseStream.id] = sseStream
+    this.sseStreams[sseStream.id] = sseStream
 
     sseStream.on("close", async() => {
-      this.#sseStreams[sseStream.id].rooms.forEach(roomId => {
-        const room = this.#rooms[roomId]
+      this.sseStreams[sseStream.id].rooms.forEach(roomId => {
+        const room = this.rooms[roomId]
         for (let i = 0; i < room.length; i++) {
           if (room[i].id === sseStream.id) {
             room.splice(i, 1)
@@ -115,46 +115,46 @@ export class SSEManager extends EventEmitter {
         }
 
         if (!room.length) {
-          delete this.#rooms[roomId]
+          delete this.rooms[roomId]
         }
       })
-      delete this.#sseStreams[sseStream.id]
+      delete this.sseStreams[sseStream.id]
     })
 
     return sseStream
   }
 
   async broadcast(id: string, message: SSEMessage): Promise<void> {
-    if (this.#sseStreams[id]) {
-      this.#sseStreams[id].broadcast(message)
+    if (this.sseStreams[id]) {
+      this.sseStreams[id].broadcast(message)
     } else {
       await this.eventsAdapter.emit("broadcast", JSON.stringify({ id, message }))
     }
   }
 
   async closeSSEStream(id: string): Promise<void> {
-    if (this.#sseStreams[id]) {
-      this.#sseStreams[id].close()
+    if (this.sseStreams[id]) {
+      this.sseStreams[id].close()
     } else {
       await this.eventsAdapter.emit("closeSSEStream", JSON.stringify({ id }))
     }
   }
 
   async addSSEStreamToRoom(streamId: string, roomId: string): Promise<void> {
-    if (this.#sseStreams[streamId]) {
-      if (!this.#rooms[roomId]) {
-        this.#rooms[roomId] = []
+    if (this.sseStreams[streamId]) {
+      if (!this.rooms[roomId]) {
+        this.rooms[roomId] = []
       }
-      this.#rooms[roomId].push(this.#sseStreams[streamId])
-      this.#sseStreams[streamId].rooms.push(roomId)
+      this.rooms[roomId].push(this.sseStreams[streamId])
+      this.sseStreams[streamId].rooms.push(roomId)
     } else {
       await this.eventsAdapter.emit("addSSEStreamToRoom", JSON.stringify({ streamId, roomId }))
     }
   }
 
   async removeSSEStreamFromRoom(streamId: string, roomId: string): Promise<void> {
-    if (this.#sseStreams[streamId]) {
-      this.#rooms[roomId]?.splice(this.#rooms[roomId]?.indexOf(this.#sseStreams[streamId]), 1)
+    if (this.sseStreams[streamId]) {
+      this.rooms[roomId]?.splice(this.rooms[roomId]?.indexOf(this.sseStreams[streamId]), 1)
     } else {
       await this.eventsAdapter.emit("removeSSEStreamFromRoom", JSON.stringify({ streamId, roomId }))
     }
@@ -198,6 +198,7 @@ export class SSEStream extends EventEmitter {
     sseManager.httpAdapter.flushResHeaders(res)
 
     sseManager.httpAdapter.onCloseCallback(res, () => {
+      sseManager.httpAdapter.endRes(res)
       this.closed = true
       if (this.#keepAliveTimeout) {
         clearTimeout(this.#keepAliveTimeout)
@@ -276,6 +277,7 @@ export class HTTPAdapter {
 
 export class ExpressHttpAdapter extends HTTPAdapter {
   constructor() {
+
     super({
       setResHeaders: (res: Response, headers): void => {
         Object.entries(headers).forEach(([k, v]) => res.set(k, v))

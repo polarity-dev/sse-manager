@@ -38,8 +38,16 @@ void (async() => {
 
   app.get("/stream", async(req, res) => {
     const sseStream = await sseManager.createSSEStream(res)
+    // sseStream.broadcast("ciao")
     // await sseManager.addSSEStreamToRoom(sseStream.id, "test-room")
     await sseStream.addToRoom("test-room")
+  })
+
+  app.get("/info", (req, res) => {
+    res.json({
+      rooms: Object.keys(sseManager.rooms),
+      streams: Object.keys(sseManager.sseStreams)
+    })
   })
 
   app.listen(PORT, () => console.log(`Server listening on port ${PORT}`))
