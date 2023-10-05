@@ -1,6 +1,6 @@
 {
   "name": "@soluzioni-futura/sse-manager",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "sse-manager",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -37,8 +37,7 @@
     "build": "rm -rf dist && tsup",
     "prepare": "npm run build",
     "pretest": "npm run build",
-    "dev": "concurrently \"docker-compose -f ./test/docker-compose.yml up\" \"tsup src/index.ts --watch\"",
-    "postinstall": "npm i --prefix ./test"
+    "dev": "concurrently \"docker-compose -f ./test/docker-compose.yml up\" \"tsup src/index.ts --watch\""
   },
   "repository": {
     "type": "git",
