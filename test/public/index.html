@@ -9,7 +9,7 @@
     <script>
       const content = document.getElementById("content")
 
-      const evtSource = new EventSource(`./stream`)
+      const evtSource = new EventSource(`/stream`)
       evtSource.onmessage = event => {
         console.log(event)
         content.innerHTML += `<div>${event.data}</div>`
