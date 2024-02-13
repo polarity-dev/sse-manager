@@ -51,6 +51,22 @@ with Redis events adapter:
   })
 ```
 
+with PostgreSQL events adapter:
+
+```js
+  const db = postgres({
+    host: 'your_host',
+    user: 'your_user',
+    password: 'your_password',
+    port: 5432,
+    database: 'your_database',
+  })
+
+  const sseManager = await createSSEManager({
+    eventsAdapter: new PostgresEventAdapter()
+  })
+```
+
 ## createSSEManager options
 
 ``` js
@@ -66,7 +82,8 @@ const sseManager = await createSSEManager({
 
 available http adapters:
 
-- `ExpressHttpAdapter`: default
+- `ExpressHttpAdapter`: default, uses ExpressJs to handle http requests
+- `FastifyHttpAdapter`: uses Fastify to handle http requests
 - custom http adapter:
 
     ```js
@@ -108,6 +125,7 @@ available event adapters:
 
 - `EmitterEventsAdapter`: default, uses NodeJs event emitters to broadcast events in a single application instance use case
 - `RedisEventsAdapter`: uses Redis to broadcast events in a multiple application instance use case
+- `PostgresEventsAdapter`: uses PostgreSQL to broadcast events in a multiple application instance use case
 - custom event adapter:
 
 ``` js
