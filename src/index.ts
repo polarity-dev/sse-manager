@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { EventEmitter } from "events"
 import { randomBytes } from "crypto"
-import { EmitterEventsAdapter, EventsAdapter, PostgresEventAdapter} from "./adapters/EventAdapters"
-import { ExpressHttpAdapter, FastifyHttpAdapter, HTTPAdapter } from "./adapters/HttpAdapters"
+import EmitterEventsAdapter from "./adapters/events/EmitterEventsAdapter"
+import EventsAdapter from "./adapters/events/EventsAdapter"
 
-
-import { PassThrough } from "stream"
+import ExpressHttpAdapter from "./adapters/https/ExpressHttpAdapter"
+import HTTPAdapter from "./adapters/https/HttpAdapter"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type SSEManagerOptions = {

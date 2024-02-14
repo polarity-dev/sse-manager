@@ -34,10 +34,10 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "rm -rf dist && tsup ",
     "prepare": "npm run build",
     "pretest": "npm run build",
-    "dev": "concurrently \"docker-compose -f ./test/docker-compose.yml up\" \"tsup src/index.ts src/adapters/EventAdapters.ts src/adapters/HttpAdapters.ts --watch\""
+    "dev": "concurrently \"docker-compose -f ./test/docker-compose.yml up\" \"tsup src/index.ts --watch\""
   },
   "repository": {
     "type": "git",
@@ -63,7 +63,6 @@
     "tsup": "^7.2.0"
   },
   "dependencies": {
-    "fast-glob": "^3.3.2",
     "fastify": "^4.26.0",
     "postgres": "^3.4.3"
   }

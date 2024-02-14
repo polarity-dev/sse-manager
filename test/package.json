@@ -4,7 +4,7 @@
   "description": "",
   "main": "test-server.js",
   "scripts": {
-    "start": "nodemon ./test-server.js -w ../SSEManager"
+    "start": "nodemon ./test-server-fastify.js -w ../SSEManager"
   },
   "keywords": [],
   "author": "",

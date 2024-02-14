@@ -54,16 +54,16 @@ with Redis events adapter:
 with PostgreSQL events adapter:
 
 ```js
-  const db = postgres({
+  const dbOptions = {
     host: 'your_host',
     user: 'your_user',
-    password: 'your_password',
     port: 5432,
-    database: 'your_database',
-  })
+    password: 'your_password',
+    database: 'your_database'
+  }
 
   const sseManager = await createSSEManager({
-    eventsAdapter: new PostgresEventAdapter()
+    eventsAdapter: new PostgresEventAdapter(dbOptions)
   })
 ```
 
