@@ -1,8 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { createClient } from "redis"
-import type { Response } from "express"
 import { EventEmitter } from "events"
 import { randomBytes } from "crypto"
+import EmitterEventsAdapter from "./adapters/events/EmitterEventsAdapter"
+import EventsAdapter from "./adapters/events/EventsAdapter"
+
+import ExpressHttpAdapter from "./adapters/https/ExpressHttpAdapter"
+import HTTPAdapter from "./adapters/https/HttpAdapter"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type SSEManagerOptions = {
@@ -14,18 +17,6 @@ export type SSEManagerOptions = {
 export type SSEMessage = { data: string, id?: number | string,  channel?: string, retry?: number }
 
 export type SSEStreamOptions = { keepAliveInterval: number | null }
-
-export type HTTPAdapterSetResHeadersFn = (res: any, headers: { [key: string]: string }) => void
-export type HTTPAdapterWriteResFn = (res: any, data: string) => void
-export type HTTPFlushResHeadersFn = (res: any) => void
-export type HTTPEndResHeadersFn = (res: any) => void
-export type HTTPResOnCloseCallbackFn = (res: any, fn: () => void) => void
-
-
-export type EventsAdapterEmitFn = (event: string, data: string) => Promise<void>
-export type EventsAdapterOnFn = (event: string, fn: (data: string, event: string) => void) => Promise<void>
-export type EventsAdapterInitFn = () => Promise<void>
-
 
 export class SSEManager extends EventEmitter {
   readonly id: string
@@ -103,7 +94,6 @@ export class SSEManager extends EventEmitter {
   async createSSEStream(res: any, options: SSEStreamOptions = { keepAliveInterval: this.#keepAliveInterval }): Promise<SSEStream> {
     const sseStream = new SSEStream(res, this, options)
     this.sseStreams[sseStream.id] = sseStream
-
     sseStream.on("close", async() => {
       this.sseStreams[sseStream.id].rooms.forEach(roomId => {
         const room = this.rooms[roomId]
@@ -192,7 +182,7 @@ export class SSEStream extends EventEmitter {
     sseManager.httpAdapter.setResHeaders(res, {
       "Cache-Control": "no-cache",
       "Content-Type": "text/event-stream",
-      Connection: "keep-alive"
+      "Connection": "keep-alive"
     })
 
     sseManager.httpAdapter.flushResHeaders(res)
@@ -247,126 +237,3 @@ export class SSEStream extends EventEmitter {
   }
 }
 
-export class HTTPAdapter {
-  setResHeaders: HTTPAdapterSetResHeadersFn
-  writeRes: HTTPAdapterWriteResFn
-  flushResHeaders: HTTPFlushResHeadersFn
-  endRes: HTTPEndResHeadersFn
-  onCloseCallback: HTTPResOnCloseCallbackFn
-
-  constructor({
-    setResHeaders,
-    writeRes,
-    flushResHeaders,
-    endRes,
-    onCloseCallback
-  }: {
-      setResHeaders: HTTPAdapterSetResHeadersFn,
-      writeRes: HTTPAdapterWriteResFn,
-      flushResHeaders: HTTPFlushResHeadersFn,
-      endRes: HTTPEndResHeadersFn,
-      onCloseCallback: HTTPResOnCloseCallbackFn
-   }) {
-    this.setResHeaders = setResHeaders
-    this.writeRes = writeRes
-    this.flushResHeaders = flushResHeaders
-    this.endRes = endRes
-    this.onCloseCallback = onCloseCallback
-  }
-}
-
-export class ExpressHttpAdapter extends HTTPAdapter {
-  constructor() {
-
-    super({
-      setResHeaders: (res: Response, headers): void => {
-        Object.entries(headers).forEach(([k, v]) => res.set(k, v))
-      },
-
-      writeRes: (res: Response, data): void => {
-        res.write(data)
-
-        const resWithFlush = res as Response & { flush?: () => void }
-        if (typeof resWithFlush.flush  === "function") {
-          resWithFlush.flush()
-        }
-      },
-
-      flushResHeaders: (res: Response): void => {
-        res.flushHeaders()
-      },
-
-      endRes: (res: Response): void => {
-        res.end()
-      },
-
-      onCloseCallback: (res: Response, fn): void => {
-        res.on("close", fn)
-      }
-    })
-  }
-}
-
-export class EventsAdapter {
-  emit: EventsAdapterEmitFn
-  on: EventsAdapterOnFn
-  init?: EventsAdapterInitFn
-
-  constructor({
-    emit,
-    on,
-    init
-  }: {
-    emit: EventsAdapterEmitFn,
-    on: EventsAdapterOnFn,
-    init?: EventsAdapterInitFn
-  }) {
-    this.emit = emit
-    this.on = on
-    this.init = init
-  }
-}
-
-export class EmitterEventsAdapter extends EventsAdapter {
-  #emitter = new EventEmitter()
-
-  constructor() {
-    super({
-      emit: (event, data) => {
-        this.#emitter.emit(event, data)
-        return Promise.resolve()
-      },
-      on: (event, fn) => {
-        this.#emitter.on(event, (data) => {
-          return fn(data, event)
-        })
-        return Promise.resolve()
-      }
-    })
-  }
-}
-
-export class RedisEventsAdapter extends EventsAdapter {
-  #redisClient: ReturnType<typeof createClient>
-  #redisSubscriber: ReturnType<typeof createClient>
-
-  constructor({
-    redisClient,
-    redisSubscriber
-  }: {
-    redisClient: ReturnType<typeof createClient>,
-    redisSubscriber: ReturnType<typeof createClient>
-  }) {
-    super({
-      emit: async(event, data) => {
-        await this.#redisClient.publish(event, data)
-      },
-      on: async(event, fn) => {
-        await this.#redisSubscriber.subscribe(event, fn)
-      }
-    })
-
-    this.#redisClient = redisClient
-    this.#redisSubscriber = redisSubscriber
-  }
-}
