@@ -6,6 +6,8 @@ import EventsAdapter from "./adapters/events/EventsAdapter"
 
 import ExpressHttpAdapter from "./adapters/https/ExpressHttpAdapter"
 import HTTPAdapter from "./adapters/https/HttpAdapter"
+import FastifyHttpAdapter from "./adapters/https/FastifyHttpAdapter"
+import PostgresEventsAdapter from "./adapters/events/PostgresEventsAdapter"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type SSEManagerOptions = {
@@ -237,3 +239,4 @@ export class SSEStream extends EventEmitter {
   }
 }
 
+export { ExpressHttpAdapter, FastifyHttpAdapter, PostgresEventsAdapter, EmitterEventsAdapter, HTTPAdapter, EventsAdapter}
