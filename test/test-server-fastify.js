@@ -1,16 +1,15 @@
-/* eslint-disable no-console */
+/* eslint-disable no- */
 const {readFileSync} = require('fs');
 const { join } = require("path")
 const fastify = require('fastify');
 const postgres = require('postgres');
 const fastifyApp = new fastify({ logger: true })
 const { createSSEManager} = require("../SSEManager")
-const PostgresEventsAdapter = require("../SSEManager/dist/adapters/events/postgresEventsAdapter")
+const PostgresEventsAdapter = require("../SSEManager/dist/adapters/events/PostgresEventsAdapter")
 const FastifyHttpAdapter = require("../SSEManager/dist/adapters/https/fastifyHttpAdapter")
 
 void (async() => {
-
-  const db =postgres({
+  const db = postgres({
     host : "postgres",
     user : "postgres",
     port : 5432,
@@ -25,12 +24,10 @@ void (async() => {
 
   setInterval(async() => {
     console.log("broadcasting")
-    await sseManager.broadcast("test-room", { data: PORT })
+    await sseManager.broadcast("test-room", { data: PORT + " " + generateMessage(1000) })
   }, 1000)
 
   const {PORT, ADDRESS}  = process.env
-
-  console.log(PORT)
 
   fastifyApp.get("/", (req, res) => {
     const indexFilePath = join(__dirname, "public/index.html")

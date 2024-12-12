@@ -16,7 +16,7 @@ export type SSEManagerOptions = {
   keepAliveInterval?: number | null
 }
 
-export type SSEMessage = { data: string, id?: number | string,  channel?: string, retry?: number }
+export type SSEMessage = { data: string, id?: number | string, channel?: string, retry?: number }
 
 export type SSEStreamOptions = { keepAliveInterval: number | null }
 
@@ -96,7 +96,7 @@ export class SSEManager extends EventEmitter {
   async createSSEStream(res: any, options: SSEStreamOptions = { keepAliveInterval: this.#keepAliveInterval }): Promise<SSEStream> {
     const sseStream = new SSEStream(res, this, options)
     this.sseStreams[sseStream.id] = sseStream
-    sseStream.on("close", async() => {
+    sseStream.on("close", async () => {
       this.sseStreams[sseStream.id].rooms.forEach(roomId => {
         const room = this.rooms[roomId]
         for (let i = 0; i < room.length; i++) {
@@ -157,7 +157,7 @@ export class SSEManager extends EventEmitter {
   }
 }
 
-export const createSSEManager = async(options?: SSEManagerOptions): Promise<SSEManager> => {
+export const createSSEManager = async (options?: SSEManagerOptions): Promise<SSEManager> => {
   const sseManager = new SSEManager(options)
   await sseManager.init()
   return sseManager
@@ -181,22 +181,29 @@ export class SSEStream extends EventEmitter {
     this.options = options
     this.closed = false
 
-    sseManager.httpAdapter.setResHeaders(res, {
-      "Cache-Control": "no-cache",
-      "Content-Type": "text/event-stream",
-      "Connection": "keep-alive"
-    })
-
-    sseManager.httpAdapter.flushResHeaders(res)
-
-    sseManager.httpAdapter.onCloseCallback(res, () => {
+    const _close = (): void => {
       sseManager.httpAdapter.endRes(res)
       this.closed = true
       if (this.#keepAliveTimeout) {
         clearTimeout(this.#keepAliveTimeout)
       }
       this.emit("close")
+    }
+
+    sseManager.httpAdapter.setResHeaders(res, {
+      "Cache-Control": "no-cache",
+      "Content-Type": "text/event-stream",
+      Connection: "keep-alive"
     })
+
+    sseManager.httpAdapter.flushResHeaders(res)
+    sseManager.httpAdapter.onCloseCallback(res, () => _close())
+
+    // Check if the request is already finished
+    if (sseManager.httpAdapter.requestIsFinished(res)) {
+      _close()
+      return
+    }
 
     this.on("data", data => sseManager.httpAdapter.writeRes(res, data))
     this.on("end", () => sseManager.httpAdapter.endRes(res))
@@ -239,4 +246,11 @@ export class SSEStream extends EventEmitter {
   }
 }
 
-export { ExpressHttpAdapter, FastifyHttpAdapter, PostgresEventsAdapter, EmitterEventsAdapter, HTTPAdapter, EventsAdapter}
+export {
+  ExpressHttpAdapter,
+  FastifyHttpAdapter,
+  PostgresEventsAdapter,
+  EmitterEventsAdapter,
+  HTTPAdapter,
+  EventsAdapter
+}
