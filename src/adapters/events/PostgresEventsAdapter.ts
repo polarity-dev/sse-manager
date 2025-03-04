@@ -53,14 +53,18 @@ export default class PostgresEventsAdapter extends EventsAdapter {
   }
 
   init = async(): Promise<void> => {
-    await this.#sql`
-      CREATE TABLE IF NOT EXISTS "SSE_events" (
-        "id" SERIAL PRIMARY KEY,
-        "timestamp" TIMESTAMPTZ DEFAULT NOW(),
-        "event" VARCHAR(255) NOT NULL,
-        "data" TEXT NOT NULL
-      );
-    `
+    try {
+      await this.#sql`
+        CREATE TABLE IF NOT EXISTS "SSE_events" (
+          "id" SERIAL PRIMARY KEY,
+          "timestamp" TIMESTAMPTZ DEFAULT NOW(),
+          "event" VARCHAR(255) NOT NULL,
+          "data" TEXT NOT NULL
+        );
+      `
+    } catch (_) {
+      console.log("Failed command CREATE TABLE IF NOT EXISTS \"SSE_events\"")
+    }
 
     setInterval(async() => {
       await this.#sql`
