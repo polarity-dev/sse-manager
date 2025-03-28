@@ -98,7 +98,7 @@ export class SSEManager extends EventEmitter {
     this.sseStreams[sseStream.id] = sseStream
     sseStream.on("close", async () => {
       this.sseStreams[sseStream.id].rooms.forEach(roomId => {
-        const room = this.rooms[roomId]
+        const room = this.rooms[roomId] || []
         for (let i = 0; i < room.length; i++) {
           if (room[i].id === sseStream.id) {
             room.splice(i, 1)
