@@ -1,5 +1,5 @@
 {
-  "name": "@soluzioni-futura/sse-manager",
+  "name": "@polarity-dev/sse-manager",
   "version": "1.5.4",
   "description": "sse-manager",
   "main": "./dist/index.js",
