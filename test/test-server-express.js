@@ -3,11 +3,11 @@ const express = require("express")
 const { join } = require("path")
 const { createClient } = require("redis")
 const app = new express()
-const { createSSEManager} = require("../SSEManager")
+const { createSSEManager } = require("../SSEManager")
 const RedisEventsAdapter = require("../SSEManager/dist/adapters/events/RedisEventsAdapter")
 const ExpressHttpAdapter = require("../SSEManager/dist/adapters/https/ExpressHttpAdapter")
 
-void (async() => {
+void (async () => {
 
   const redisClient = createClient({
     url: "redis://redis:6379"
@@ -25,21 +25,21 @@ void (async() => {
     })
   })
 
-  setInterval(async() => {
+  setInterval(async () => {
     console.log("broadcasting")
     await sseManager.broadcast("test-room", { data: PORT })
   }, 1000)
 
-  const {PORT, ADDRESS}  = process.env
-  
+  const { PORT, ADDRESS } = process.env
+
   app.use(express.static(join(__dirname, "./public")))
 
-  app.get("/close/:id", async(req, res) => {
+  app.get("/close/:id", async (req, res) => {
     await sseManager.closeSSEStream(req.params.id)
     res.sendStatus(200)
   })
 
-  app.get("/stream", async(req, res) => {
+  app.get("/stream", async (req, res) => {
     console.log("creating")
     const sseStream = await sseManager.createSSEStream(res)
     console.log("created")

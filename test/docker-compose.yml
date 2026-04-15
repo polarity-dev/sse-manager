@@ -11,8 +11,8 @@ services:
     working_dir: /usr/app
     entrypoint: npm start
     environment:
-      - PORT=8081
-      - ADDRESS = "0.0.0.0"
+      PORT: 8081
+      ADDRESS: "0.0.0.0"
     restart: always
 
   api2:
@@ -26,14 +26,14 @@ services:
     working_dir: /usr/app
     entrypoint: npm start
     environment:
-      - PORT=8082
-      - ADDRESS = "0.0.0.0"
+      PORT: 8082
+      ADDRESS: "0.0.0.0"
     restart: always
 
   redis:
     image: redis:alpine
 
-  postgres: 
+  postgres:
     image: postgres:latest
     ports:
       - "5432:5432"
@@ -41,6 +41,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: '12345678'
       POSTGRES_DB: postgres
-    volumes: 
+    volumes:
          - ./pg_hba.conf:/var/lib/foo/pg_hba.conf
     command: ["postgres", "-c", "hba_file=/var/lib/foo/pg_hba.conf"]

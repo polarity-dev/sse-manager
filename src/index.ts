@@ -96,7 +96,7 @@ export class SSEManager extends EventEmitter {
   async createSSEStream(res: any, options: SSEStreamOptions = { keepAliveInterval: this.#keepAliveInterval }): Promise<SSEStream> {
     const sseStream = new SSEStream(res, this, options)
     this.sseStreams[sseStream.id] = sseStream
-    sseStream.on("close", async () => {
+    sseStream.on("close", async() => {
       this.sseStreams[sseStream.id].rooms.forEach(roomId => {
         const room = this.rooms[roomId] || []
         for (let i = 0; i < room.length; i++) {
@@ -116,23 +116,23 @@ export class SSEManager extends EventEmitter {
     return sseStream
   }
 
-  async broadcast(id: string, message: SSEMessage): Promise<void> {
+  async broadcast(id: string, message: SSEMessage, options?: { propagation?: boolean }): Promise<void> {
     if (this.sseStreams[id]) {
       this.sseStreams[id].broadcast(message)
     } else {
-      await this.eventsAdapter.emit("broadcast", JSON.stringify({ id, message }))
+      await this.eventsAdapter.emit("broadcast", JSON.stringify({ id, message }), options)
     }
   }
 
-  async closeSSEStream(id: string): Promise<void> {
+  async closeSSEStream(id: string, options?: { propagation?: boolean }): Promise<void> {
     if (this.sseStreams[id]) {
       this.sseStreams[id].close()
     } else {
-      await this.eventsAdapter.emit("closeSSEStream", JSON.stringify({ id }))
+      await this.eventsAdapter.emit("closeSSEStream", JSON.stringify({ id }), options)
     }
   }
 
-  async addSSEStreamToRoom(streamId: string, roomId: string): Promise<void> {
+  async addSSEStreamToRoom(streamId: string, roomId: string, options?: { propagation?: boolean }): Promise<void> {
     if (this.sseStreams[streamId]) {
       if (!this.rooms[roomId]) {
         this.rooms[roomId] = []
@@ -140,24 +140,24 @@ export class SSEManager extends EventEmitter {
       this.rooms[roomId].push(this.sseStreams[streamId])
       this.sseStreams[streamId].rooms.push(roomId)
     } else {
-      await this.eventsAdapter.emit("addSSEStreamToRoom", JSON.stringify({ streamId, roomId }))
+      await this.eventsAdapter.emit("addSSEStreamToRoom", JSON.stringify({ streamId, roomId }), options)
     }
   }
 
-  async removeSSEStreamFromRoom(streamId: string, roomId: string): Promise<void> {
+  async removeSSEStreamFromRoom(streamId: string, roomId: string, options?: { propagation?: boolean }): Promise<void> {
     if (this.sseStreams[streamId]) {
       this.rooms[roomId]?.splice(this.rooms[roomId]?.indexOf(this.sseStreams[streamId]), 1)
     } else {
-      await this.eventsAdapter.emit("removeSSEStreamFromRoom", JSON.stringify({ streamId, roomId }))
+      await this.eventsAdapter.emit("removeSSEStreamFromRoom", JSON.stringify({ streamId, roomId }), options)
     }
   }
 
-  async closeRoom(roomId: string): Promise<void> {
-    await this.eventsAdapter.emit("closeRoom", JSON.stringify({ roomId }))
+  async closeRoom(roomId: string, options?: { propagation?: boolean }): Promise<void> {
+    await this.eventsAdapter.emit("closeRoom", JSON.stringify({ roomId }), options)
   }
 }
 
-export const createSSEManager = async (options?: SSEManagerOptions): Promise<SSEManager> => {
+export const createSSEManager = async(options?: SSEManagerOptions): Promise<SSEManager> => {
   const sseManager = new SSEManager(options)
   await sseManager.init()
   return sseManager
@@ -229,7 +229,8 @@ export class SSEStream extends EventEmitter {
   }
 
   broadcast(message: SSEMessage): void {
-    this.emit("data", `${Object.entries(message).map(([k, v]) => `${k}: ${v}`).join("\n")}\n\n`)
+    // No need to propagate: the message is already in the correct instance
+    this.emit("data", `${Object.entries(message).map(([k, v]) => `${k}: ${v}`).join("\n")}\n\n`, { propagation: false })
     this.#setKeepAliveInterval()
   }
 
@@ -237,12 +238,12 @@ export class SSEStream extends EventEmitter {
     this.emit("end")
   }
 
-  addToRoom(id: string): Promise<void> {
-    return this.sseManager.addSSEStreamToRoom(this.id, id)
+  addToRoom(id: string, options?: { propagation?: boolean }): Promise<void> {
+    return this.sseManager.addSSEStreamToRoom(this.id, id, options)
   }
 
-  removeFromRoom(id: string): Promise<void> {
-    return this.sseManager.removeSSEStreamFromRoom(this.id, id)
+  removeFromRoom(id: string, options?: { propagation?: boolean }): Promise<void> {
+    return this.sseManager.removeSSEStreamFromRoom(this.id, id, options)
   }
 }
 
